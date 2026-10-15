@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Console - Autonomous Travel Planner{% endblock %}
+
+{% block content %}
+<div class="admin-container animate-fade-in">
+    <div class="admin-header glass-panel">
+        <h1><i class="fa-solid fa-user-shield text-danger"></i> System Administration Console</h1>
+        <p>Manage registered user credentials, monitor travel generation volumes, and clean up orphan trip database records.</p>
+    </div>
+
+    <!-- 2-Section Grid Layout -->
+    <div class="admin-grid mt-4">
+        
+        <!-- Section 1: Users Table -->
+        <div class="admin-box glass-panel">
+            <div class="box-header-row mb-3">
+                <h3><i class="fa-solid fa-users"></i> Registered Accounts ({{ users|length }})</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                            <tr id="user-row-{{ user.id }}">
+                                <td>{{ user.id }}</td>
+                                <td><strong>{{ user.username }}</strong></td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-danger-soft text-danger">Admin</span>
+                                    {% else %}
+                                        <span class="badge bg-primary-soft text-primary">User</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if user.id == current_user.id %}
+                                        <button class="btn btn-sm btn-outline" disabled title="Self deletion disabled">Disabled</button>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-danger-soft delete-user-btn" data-user-id="{{ user.id }}">
+                                            <i class="fa-solid fa-trash-can"></i> Delete
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Trips Table -->
+        <div class="admin-box glass-panel">
+            <div class="box-header-row mb-3">
+                <h3><i class="fa-solid fa-route"></i> Generated Trip Plans ({{ trips|length }})</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Planner</th>
+                            <th>Destination</th>
+                            <th>Days</th>
+                            <th>Budget</th>
+                            <th>Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trip in trips %}
+                            <tr id="trip-row-{{ trip.id }}">
+                                <td>{{ trip.id }}</td>
+                                <td>{{ trip.user.username }}</td>
+                                <td><strong>{{ trip.destination }}</strong></td>
+                                <td>{{ trip.num_days }} Days</td>
+                                <td>${{ "{:,.0f}".format(trip.budget) }}</td>
+                                <td>{{ trip.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger-soft delete-trip-admin-btn" data-trip-id="{{ trip.id }}">
+                                        <i class="fa-solid fa-trash-can"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Delete User Handler
+        document.querySelectorAll(".delete-user-btn").forEach(btn => {
+            btn.addEventListener("click", function() {
+                const userId = this.getAttribute("data-user-id");
+                if (confirm("WARNING: Deleting this user will remove their account and ALL their saved travel plans. Do you want to proceed?")) {
+                    fetch(`/admin/delete_user/${userId}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const row = document.getElementById(`user-row-${userId}`);
+                            row.style.background = "rgba(220, 53, 69, 0.2)";
+                            row.style.opacity = 0;
+                            setTimeout(() => {
+                                row.remove();
+                                window.location.reload(); // Refresh to clean dependencies in tables
+                            }, 500);
+                        } else {
+                            alert("Error: " + data.message);
+                        }
+                    })
+                    .catch(err => console.error(err));
+                }
+            });
+        });
+
+        // Delete Trip Handler
+        document.querySelectorAll(".delete-trip-admin-btn").forEach(btn => {
+            btn.addEventListener("click", function() {
+                const tripId = this.getAttribute("data-trip-id");
+                if (confirm("Are you sure you want to delete this trip itinerary?")) {
+                    fetch(`/admin/delete_trip/${tripId}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const row = document.getElementById(`trip-row-${tripId}`);
+                            row.style.background = "rgba(220, 53, 69, 0.2)";
+                            row.style.opacity = 0;
+                            setTimeout(() => {
+                                row.remove();
+                            }, 500);
+                        } else {
+                            alert("Error: " + data.message);
+                        }
+                    })
+                    .catch(err => console.error(err));
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

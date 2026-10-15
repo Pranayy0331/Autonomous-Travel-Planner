@@ -1,0 +1,527 @@
+{% extends 'base.html' %}
+
+{% block title %}Trip Details: {{ trip.destination }} - Autonomous Travel Planner{% endblock %}
+
+{% block extra_head %}
+<!-- Leaflet.js CSS for Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<!-- Leaflet.js JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
+
+{% block content %}
+<div class="trip-detail-container animate-fade-in">
+    <!-- Header Banner -->
+    <div class="trip-detail-header glass-panel">
+        <div class="header-left">
+            <span class="trip-badge-large {{ trip.travel_type.lower() }}"><i class="fa-solid fa-plane"></i> {{ trip.travel_type }} Trip</span>
+            <h1 class="trip-title-text">{{ trip.destination }}</h1>
+            <p class="trip-subtitle-text"><i class="fa-solid fa-location-dot"></i> Departing from: <strong>{{ trip.current_location }}</strong></p>
+        </div>
+        <div class="header-right text-right">
+            <span class="cost-badge">Est. Cost: ${{ "{:,.2f}".format(data.cost_breakdown.total) }}</span>
+            <div class="header-actions mt-2">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-house"></i> Dashboard</a>
+                <button class="btn btn-danger-soft btn-sm" id="deleteTripBtn"><i class="fa-solid fa-trash-can"></i> Delete Plan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Meta Info Cards -->
+    <div class="meta-info-strip mt-3">
+        <div class="meta-strip-card glass-panel">
+            <i class="fa-solid fa-calendar-day"></i>
+            <div>
+                <span class="lbl">Start Date</span>
+                <span class="val">{{ trip.start_date.strftime('%B %d, %Y') }}</span>
+            </div>
+        </div>
+        <div class="meta-strip-card glass-panel">
+            <i class="fa-solid fa-clock"></i>
+            <div>
+                <span class="lbl">Duration</span>
+                <span class="val">{{ trip.num_days }} Day{% if trip.num_days > 1 %}s{% endif %}</span>
+            </div>
+        </div>
+        <div class="meta-strip-card glass-panel">
+            <i class="fa-solid fa-user-group"></i>
+            <div>
+                <span class="lbl">Travelers</span>
+                <span class="val">{{ trip.num_travelers }} Person{% if trip.num_travelers > 1 %}s{% endif %}</span>
+            </div>
+        </div>
+        <div class="meta-strip-card glass-panel">
+            <i class="fa-solid fa-truck-plane"></i>
+            <div>
+                <span class="lbl">Transport Pref.</span>
+                <span class="val">{{ trip.transport_pref }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2-Column Split: Itinerary Details on Left, Chat Assistant on Right -->
+    <div class="trip-grid mt-4">
+        <!-- Details Column -->
+        <div class="trip-details-col">
+            <!-- Tabs Menu -->
+            <div class="tab-menu-container glass-panel">
+                <button class="tab-btn active" onclick="switchTab(event, 'tabItinerary')">
+                    <i class="fa-solid fa-calendar-days"></i> Itinerary
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'tabDining')">
+                    <i class="fa-solid fa-utensils"></i> Dining & Attractions
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'tabMap')">
+                    <i class="fa-solid fa-map-location-dot"></i> Map & Weather
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'tabPacking')">
+                    <i class="fa-solid fa-suitcase"></i> Packing List
+                </button>
+                <button class="tab-btn" onclick="switchTab(event, 'tabTransport')">
+                    <i class="fa-solid fa-circle-info"></i> Guide & Safety
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="tab-contents-container mt-3">
+                
+                <!-- Tab: Itinerary -->
+                <div id="tabItinerary" class="tab-content active">
+                    <div class="itinerary-timeline">
+                        {% for day in data.itinerary %}
+                            <div class="timeline-day-card glass-panel animate-slide-up" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                                <div class="day-card-header">
+                                    <span class="day-number-badge">Day {{ day.day_num }}</span>
+                                    <h3>Daily Activities</h3>
+                                </div>
+                                <div class="day-activities mt-3">
+                                    <!-- Morning -->
+                                    <div class="activity-row">
+                                        <div class="activity-time"><i class="fa-regular fa-clock text-info"></i> Morning</div>
+                                        <div class="activity-detail">
+                                            <p>{{ day.morning.activity }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Afternoon -->
+                                    <div class="activity-row mt-3">
+                                        <div class="activity-time"><i class="fa-regular fa-clock text-warning"></i> Afternoon</div>
+                                        <div class="activity-detail">
+                                            <p>{{ day.afternoon.activity }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Evening -->
+                                    <div class="activity-row mt-3">
+                                        <div class="activity-time"><i class="fa-regular fa-clock text-danger"></i> Evening</div>
+                                        <div class="activity-detail">
+                                            <p>{{ day.evening.activity }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Recommended Restaurant -->
+                                    <div class="activity-row rest-row mt-3 pt-3">
+                                        <div class="activity-time"><i class="fa-solid fa-utensils text-success"></i> Lunch / Dinner</div>
+                                        <div class="activity-detail">
+                                            <strong>{{ day.restaurant.name }}</strong> ({{ day.restaurant.cuisine }}) - 
+                                            <span class="text-muted">{{ day.restaurant.desc }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Tab: Dining & Attractions -->
+                <div id="tabDining" class="tab-content">
+                    <div class="dining-attractions-grid">
+                        <!-- Left: Key Attractions -->
+                        <div class="grid-box glass-panel">
+                            <h3><i class="fa-solid fa-camera-retro"></i> Top Tourist Attractions</h3>
+                            <ul class="attraction-list mt-3">
+                                {% for att in data.hotels %}
+                                    <!-- Overriding lists to show mock attractions detail if fallback or popular -->
+                                {% endfor %}
+                                <!-- Render dynamically -->
+                                {% if data.best_time %}
+                                    <div class="attraction-items">
+                                        <!-- Popular items rendering -->
+                                        <div class="att-item mt-2">
+                                            <h4>Primary Landmarks</h4>
+                                            <p class="text-muted">Discover the unique cultural squares, local viewpoints, and historical museums featured in your day-by-day itinerary plans.</p>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <hr class="divider">
+                                <h4>Suggested Hotels ({{ trip.budget }} Budget Tier)</h4>
+                                <div class="hotel-list mt-3">
+                                    {% for hotel in data.hotels %}
+                                        <div class="hotel-card mt-2">
+                                            <div class="hotel-info">
+                                                <h5>{{ hotel.name }}</h5>
+                                                <div class="rating"><i class="fa-solid fa-star"></i> {{ hotel.rating }}/5.0</div>
+                                                <p class="text-muted">{{ hotel.desc }}</p>
+                                            </div>
+                                            <div class="hotel-price">${{ hotel.price }}/night</div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Dining spots -->
+                        <div class="grid-box glass-panel">
+                            <h3><i class="fa-solid fa-utensils"></i> Curated Restaurant List</h3>
+                            <div class="restaurant-list mt-3">
+                                {% for rest in data.restaurants %}
+                                    <div class="rest-card mt-3">
+                                        <div class="rest-header">
+                                            <h5>{{ rest.name }}</h5>
+                                            <span class="price-tier">{{ rest.price }}</span>
+                                        </div>
+                                        <span class="cuisine-badge">{{ rest.cuisine }}</span>
+                                        <p class="text-muted mt-2">{{ rest.desc }}</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Map & Weather -->
+                <div id="tabMap" class="tab-content">
+                    <div class="map-weather-grid">
+                        <!-- Left: Leaflet Map Container -->
+                        <div class="map-box glass-panel">
+                            <h3><i class="fa-solid fa-map-location-dot"></i> Destination Map Location</h3>
+                            <div id="tripMap" class="map-container-style mt-3"></div>
+                        </div>
+
+                        <!-- Right: Weather status -->
+                        <div class="weather-box glass-panel">
+                            <h3><i class="fa-solid fa-cloud-sun"></i> Weather Projection</h3>
+                            <div class="weather-summary-card mt-3 text-center">
+                                <div class="weather-icon-large">
+                                    {% if 'sunny' in data.weather.condition.lower() or 'clear' in data.weather.condition.lower() %}
+                                        <i class="fa-solid fa-sun text-warning animate-spin-slow"></i>
+                                    {% elif 'rain' in data.weather.condition.lower() or 'shower' in data.weather.condition.lower() %}
+                                        <i class="fa-solid fa-cloud-showers-heavy text-info animate-float"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-cloud-sun text-muted animate-float"></i>
+                                    {% endif %}
+                                </div>
+                                <h4 class="temperature mt-2">{{ data.weather.avg_temp }}</h4>
+                                <h5 class="condition mt-1">{{ data.weather.condition }}</h5>
+                                <p class="summary mt-3 text-muted">{{ data.weather.summary }}</p>
+                            </div>
+                            
+                            <div class="distance-info mt-4">
+                                <h4><i class="fa-solid fa-road"></i> Transit Distance</h4>
+                                <p class="text-muted mt-1">{{ data.distance_info }} from your starting node.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Packing List -->
+                <div id="tabPacking" class="tab-content">
+                    <div class="packing-list-box glass-panel">
+                        <div class="box-header-row">
+                            <h3><i class="fa-solid fa-suitcase-rolling"></i> Interactive Packing Checklist</h3>
+                            <p class="text-muted">Items are automatically saved when you check/uncheck them.</p>
+                        </div>
+                        <ul class="packing-ul mt-3">
+                            {% for pack in data.packing_checklist %}
+                                <li class="packing-li {% if pack.checked %}checked{% endif %}" onclick="toggleChecklist({{ loop.index0 }}, this)">
+                                    <input type="checkbox" id="chk-{{ loop.index0 }}" {% if pack.checked %}checked{% endif %} class="checklist-check">
+                                    <label for="chk-{{ loop.index0 }}" class="checklist-lbl">{{ pack.item }}</label>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Tab: Guide & Safety -->
+                <div id="tabTransport" class="tab-content">
+                    <div class="guide-safety-grid">
+                        <!-- Left: Transportation advice -->
+                        <div class="guide-box glass-panel">
+                            <h3><i class="fa-solid fa-bus-simple"></i> Local Transportation Guidelines</h3>
+                            <div class="transport-modes mt-3">
+                                {% for trans in data.local_transport %}
+                                    <div class="mode-item mt-3">
+                                        <h5><i class="fa-solid fa-arrow-pointer text-primary"></i> {{ trans.mode }}</h5>
+                                        <ul class="mode-details-list mt-1">
+                                            <li><strong>Cost:</strong> {{ trans.cost }}</li>
+                                            <li><strong>Frequency:</strong> {{ trans.frequency }}</li>
+                                            <li><strong>Tip:</strong> {{ trans.tips }}</li>
+                                        </ul>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Right: Safety contacts and best time -->
+                        <div class="safety-box glass-panel">
+                            <h3><i class="fa-solid fa-heart-pulse"></i> Destination Health & Safety</h3>
+                            <div class="best-time mt-3">
+                                <h5>Best Time to Visit:</h5>
+                                <p class="text-muted">{{ data.best_time }}</p>
+                            </div>
+                            
+                            <hr class="divider">
+                            
+                            <div class="emergency-contacts mt-3">
+                                <h5>Emergency Numbers:</h5>
+                                <ul class="emergency-list mt-2">
+                                    <li><i class="fa-solid fa-shield-halved text-danger"></i> <strong>Police:</strong> {{ data.emergency_contacts.police }}</li>
+                                    <li><i class="fa-solid fa-truck-medical text-danger"></i> <strong>Medical Support:</strong> {{ data.emergency_contacts.medical }}</li>
+                                    <li><i class="fa-solid fa-fire text-danger"></i> <strong>Fire Department:</strong> {{ data.emergency_contacts.fire }}</li>
+                                    <li><i class="fa-solid fa-circle-exclamation text-warning"></i> <strong>General Helpline:</strong> {{ data.emergency_contacts.general }}</li>
+                                </ul>
+                            </div>
+
+                            <hr class="divider">
+
+                            <div class="travel-tips mt-3">
+                                <h5>AI Travel Advice:</h5>
+                                <ul class="tips-ul mt-2">
+                                    {% for tip in data.travel_tips %}
+                                        <li><i class="fa-solid fa-lightbulb text-warning"></i> {{ tip }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- AI Assistant Sidebar -->
+        <div class="trip-chat-col">
+            <div class="chat-container glass-panel">
+                <div class="chat-header">
+                    <div class="bot-badge">
+                        <i class="fa-solid fa-robot animate-pulse"></i>
+                        <div>
+                            <h4>AI Travel Companion</h4>
+                            <span class="status-online"><i class="fa-solid fa-circle"></i> Live Assistant</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message incoming animate-slide-up">
+                        <div class="message-content">
+                            <p>Hello! I am your AI Travel Companion. I can help answer questions about your trip to <strong>{{ trip.destination }}</strong>, including weather, packing, and emergency services.</p>
+                            <p class="mt-2">💡 <strong>Try asking me:</strong>
+                            <br>• <em>"What's the weather like?"</em>
+                            <br>• <em>"What should I pack?"</em>
+                            <br>• <em>"change day 1 afternoon to visit a museum"</em></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-wrapper">
+                    <form id="chatForm" class="chat-input-form">
+                        <input type="text" id="chatInput" placeholder="Ask questions or request itinerary changes..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary" id="chatSendBtn" aria-label="Send Message">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simple alert notification overlay -->
+<div class="notification-toast" id="reloadToast">
+    <i class="fa-solid fa-arrows-rotate animate-spin-slow"></i>
+    <span>Itinerary modified! Reloading view...</span>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Tab switching logic
+    function switchTab(evt, tabId) {
+        // Hide all tab content
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Remove active class from buttons
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => btn.classList.remove('active'));
+        
+        // Show current tab content and set active class to clicked button
+        document.getElementById(tabId).classList.add('active');
+        evt.currentTarget.classList.add('active');
+        
+        // Special render trigger for map to ensure Leaflet renders container sizes correctly when hidden
+        if (tabId === 'tabMap') {
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize();
+                }
+            }, 100);
+        }
+    }
+
+    // Initialize Leaflet Map
+    let map = null;
+    const destLat = parseFloat("{{ data.lat }}");
+    const destLng = parseFloat("{{ data.lng }}");
+    const destinationName = "{{ trip.destination }}";
+
+    function initMap() {
+        if (!isNaN(destLat) && !isNaN(destLng)) {
+            map = L.map('tripMap').setView([destLat, destLng], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            L.marker([destLat, destLng]).addTo(map)
+                .bindPopup(`<b>${destinationName}</b><br>AI-Planned Vacation Destination.`)
+                .openPopup();
+        }
+    }
+
+    // Run map setup
+    initMap();
+
+    // Checklist toggling logic via AJAX
+    const tripId = parseInt("{{ trip.id }}");
+    function toggleChecklist(index, element) {
+        const checkbox = element.querySelector('.checklist-check');
+        // Toggle status
+        const isChecked = !checkbox.checked;
+        checkbox.checked = isChecked;
+        
+        if (isChecked) {
+            element.classList.add('checked');
+        } else {
+            element.classList.remove('checked');
+        }
+        
+        // Send updates via AJAX to preserve checked state
+        fetch(`/trip/${tripId}/update_checklist`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ index: index, checked: isChecked })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error("Failed to update checklist item:", data.message);
+            }
+        })
+        .catch(err => console.error("Error updating packing item:", err));
+    }
+
+    // Delete Trip handler
+    document.getElementById("deleteTripBtn").addEventListener("click", function() {
+        if (confirm("Are you sure you want to delete this trip plan?")) {
+            fetch(`/trip/${tripId}/delete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = "{{ url_for('dashboard') }}";
+                } else {
+                    alert("Error deleting trip: " + data.message);
+                }
+            })
+            .catch(err => console.error(err));
+        }
+    });
+
+    // Chat Assistant AJAX handling
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("chatInput");
+    const chatMessages = document.getElementById("chatMessages");
+    const chatSendBtn = document.getElementById("chatSendBtn");
+    const reloadToast = document.getElementById("reloadToast");
+
+    chatForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const msgText = chatInput.value.trim();
+        if (!msgText) return;
+        
+        // Append user message
+        appendMessage(msgText, 'outgoing');
+        chatInput.value = '';
+        chatInput.disabled = true;
+        chatSendBtn.disabled = true;
+        
+        // Append typing indicator
+        const typingId = appendMessage("Thinking...", 'incoming typing');
+        
+        fetch(`/trip/${tripId}/chat`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: msgText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove typing indicator
+            document.getElementById(typingId).remove();
+            chatInput.disabled = false;
+            chatSendBtn.disabled = false;
+            chatInput.focus();
+            
+            if (data.success) {
+                appendMessage(data.reply, 'incoming');
+                if (data.updated) {
+                    // Trigger itinerary refresh alert
+                    reloadToast.classList.add("active");
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2500);
+                }
+            } else {
+                appendMessage("Sorry, I encountered an error answering your request. Please try again.", 'incoming');
+            }
+        })
+        .catch(err => {
+            document.getElementById(typingId).remove();
+            chatInput.disabled = false;
+            chatSendBtn.disabled = false;
+            appendMessage("Sorry, network error occurred.", 'incoming');
+            console.error(err);
+        });
+    });
+
+    function appendMessage(text, direction) {
+        const id = 'msg-' + Math.random().toString(36).substr(2, 9);
+        const div = document.createElement('div');
+        div.className = `message ${direction}`;
+        div.id = id;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        
+        // Very basic custom parser to handle simple markdown highlights from AI simulator
+        let parsedText = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\n/g, '<br>');
+            
+        contentDiv.innerHTML = parsedText;
+        div.appendChild(contentDiv);
+        
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return id;
+    }
+</script>
+{% endblock %}

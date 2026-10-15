@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Plan a Trip - Autonomous Travel Planner{% endblock %}
+
+{% block content %}
+<div class="planner-container animate-fade-in">
+    <div class="planner-card glass-panel">
+        <div class="planner-header text-center">
+            <span class="badge bg-primary-soft text-primary"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Engine</span>
+            <h2>Create New Travel Plan</h2>
+            <p>Fill out the preferences below and let our assistant draft a comprehensive plan</p>
+        </div>
+
+        <form action="{{ url_for('planner') }}" method="POST" id="plannerForm" class="planner-form mt-4">
+            <!-- Part 1: Locations & Dates -->
+            <div class="form-section">
+                <h3 class="section-subtitle"><i class="fa-solid fa-map-pin"></i> 1. Route & Dates</h3>
+                <div class="form-row mt-3">
+                    <div class="form-group col-md-6">
+                        <label for="current_location">Current Location <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-location-crosshairs input-icon"></i>
+                            <input type="text" id="current_location" name="current_location" placeholder="e.g. New York, USA" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label for="destination">Destination <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-map-location-dot input-icon"></i>
+                            <input type="text" id="destination" name="destination" placeholder="e.g. Paris, France" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row mt-3">
+                    <div class="form-group col-md-6">
+                        <label for="start_date">Departure Date <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-calendar-days input-icon"></i>
+                            <input type="date" id="start_date" name="start_date" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label for="num_days">Duration (Days) <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-clock input-icon"></i>
+                            <input type="number" id="num_days" name="num_days" min="1" max="15" value="3" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Part 2: Travel Details & Budget -->
+            <div class="form-section mt-4">
+                <hr class="divider">
+                <h3 class="section-subtitle mt-3"><i class="fa-solid fa-user-gear"></i> 2. Preferences & Budget</h3>
+                
+                <div class="form-row mt-3">
+                    <div class="form-group col-md-6">
+                        <label for="num_travelers">Number of Travelers <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user-group input-icon"></i>
+                            <input type="number" id="num_travelers" name="num_travelers" min="1" value="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label for="budget">Total Budget ($) <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-dollar-sign input-icon"></i>
+                            <input type="number" id="budget" name="budget" min="10" placeholder="e.g. 1500" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row mt-3">
+                    <div class="form-group col-md-6">
+                        <label for="travel_type">Traveler Type <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-users input-icon"></i>
+                            <select id="travel_type" name="travel_type" required>
+                                <option value="Solo" selected>Solo</option>
+                                <option value="Couple">Couple</option>
+                                <option value="Family">Family (with kids)</option>
+                                <option value="Friends">Friends / Group</option>
+                                <option value="Business">Business</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label for="transport_preference">Transportation Preference <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-train-subway input-icon"></i>
+                            <select id="transport_preference" name="transport_preference" required>
+                                <option value="Car" selected>Car (Self Drive)</option>
+                                <option value="Flight">Flight</option>
+                                <option value="Train">Train</option>
+                                <option value="Bus">Bus</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg mt-5" id="generateBtn">
+                Generate Smart Plan <i class="fa-solid fa-wand-magic-sparkles ml-2"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Loading overlay element -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loader-content text-center glass-panel">
+        <div class="planet-spinner">
+            <i class="fa-solid fa-plane-departure plane-flying"></i>
+            <i class="fa-solid fa-earth-americas earth-rotating"></i>
+        </div>
+        <h2 class="mt-4">Drafting Your Travel Itinerary</h2>
+        <p class="loading-status-text mt-2" id="loadingStatus">Securing local coordinates...</p>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start_date').setAttribute('min', today);
+        document.getElementById('start_date').value = today;
+
+        const form = document.getElementById("plannerForm");
+        const overlay = document.getElementById("loadingOverlay");
+        const statusText = document.getElementById("loadingStatus");
+        const progressFill = document.getElementById("progressBarFill");
+
+        const statusMessages = [
+            "Initializing Antigravity Travel Planner...",
+            "Resolving destination coordinates and Leaflet map variables...",
+            "Structuring customized weather forecasts...",
+            "Sourcing budget-friendly accommodation and local hotels...",
+            "Pinpointing trending restaurants and traditional eateries...",
+            "Formulating transportation advice and checklists...",
+            "Reviewing day-wise travel safety warnings...",
+            "Polishing final itinerary output details..."
+        ];
+
+        form.addEventListener("submit", function(e) {
+            overlay.classList.add("active");
+            let index = 0;
+            let progress = 0;
+
+            // Cycle status messages
+            const messageInterval = setInterval(() => {
+                if (index < statusMessages.length - 1) {
+                    index++;
+                    statusText.textContent = statusMessages[index];
+                }
+            }, 1800);
+
+            // Progress bar simulation
+            const progressInterval = setInterval(() => {
+                if (progress < 95) {
+                    progress += Math.random() * 8;
+                    if (progress > 95) progress = 95;
+                    progressFill.style.width = `${progress}%`;
+                }
+            }, 400);
+        });
+    });
+</script>
+{% endblock %}

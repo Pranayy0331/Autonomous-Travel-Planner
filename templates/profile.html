@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}User Profile - Autonomous Travel Planner{% endblock %}
+
+{% block content %}
+<div class="profile-container animate-fade-in">
+    <div class="profile-layout">
+        <!-- Sidebar Summary -->
+        <div class="profile-sidebar glass-panel text-center">
+            <div class="avatar-circle-large">
+                <i class="fa-solid fa-user-astronaut"></i>
+            </div>
+            <h2>{{ current_user.username }}</h2>
+            <span class="user-email text-muted">{{ current_user.email }}</span>
+            <div class="join-date mt-2">
+                <i class="fa-solid fa-calendar-check"></i> Member since: <strong>{{ current_user.created_at.strftime('%B %Y') }}</strong>
+            </div>
+            {% if current_user.is_admin %}
+                <span class="admin-badge mt-2"><i class="fa-solid fa-shield-halved"></i> Admin Account</span>
+            {% endif %}
+        </div>
+
+        <!-- Form Editor Panel -->
+        <div class="profile-editor-card glass-panel">
+            <h2>Account & Travel Preferences</h2>
+            <form action="{{ url_for('profile') }}" method="POST" class="mt-4" id="profileForm">
+                <!-- Section 1: Account Information -->
+                <div class="editor-section">
+                    <h3 class="section-title-small"><i class="fa-solid fa-address-book"></i> Contact Details</h3>
+                    <div class="form-row mt-3">
+                        <div class="form-group col-md-6">
+                            <label for="username">Username (Cannot Change)</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-user input-icon"></i>
+                                <input type="text" id="username" value="{{ current_user.username }}" disabled class="disabled-input">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="email">Email Address <span class="required">*</span></label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-envelope input-icon"></i>
+                                <input type="email" id="email" name="email" value="{{ current_user.email }}" required autocomplete="email">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row mt-3">
+                        <div class="form-group col-md-6">
+                            <label for="fullname">Full Name</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-address-card input-icon"></i>
+                                <input type="text" id="fullname" name="fullname" value="{{ profile.fullname or '' }}" placeholder="John Doe">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="phone">Phone Number</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-phone input-icon"></i>
+                                <input type="tel" id="phone" name="phone" value="{{ profile.phone or '' }}" placeholder="+1 (555) 012-3456">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="divider mt-4">
+
+                <!-- Section 2: Traveler Preferences -->
+                <div class="editor-section mt-4">
+                    <h3 class="section-title-small"><i class="fa-solid fa-compass"></i> AI Generator Customization</h3>
+                    <p class="text-muted">These settings will influence recommendations on future generated travel plans.</p>
+                    
+                    <div class="form-row mt-3">
+                        <div class="form-group col-md-6">
+                            <label for="pref_climate">Preferred Climate</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-temperature-half input-icon"></i>
+                                <select id="pref_climate" name="pref_climate">
+                                    <option value="Any" {% if preferences.preferred_climate == 'Any' %}selected{% endif %}>Any Climate</option>
+                                    <option value="Tropical" {% if preferences.preferred_climate == 'Tropical' %}selected{% endif %}>Tropical / Warm</option>
+                                    <option value="Cold" {% if preferences.preferred_climate == 'Cold' %}selected{% endif %}>Cold / Winter</option>
+                                    <option value="Mild" {% if preferences.preferred_climate == 'Mild' %}selected{% endif %}>Mild / Autumnal</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="pref_style">Travel Style Pace</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-route input-icon"></i>
+                                <select id="pref_style" name="pref_style">
+                                    <option value="Balanced" {% if preferences.travel_style == 'Balanced' %}selected{% endif %}>Balanced (Sightseeing & Rest)</option>
+                                    <option value="Relaxation" {% if preferences.travel_style == 'Relaxation' %}selected{% endif %}>Relaxation-focused</option>
+                                    <option value="Adventure" {% if preferences.travel_style == 'Adventure' %}selected{% endif %}>Adventure & Active</option>
+                                    <option value="Cultural" {% if preferences.travel_style == 'Cultural' %}selected{% endif %}>Cultural & Historical</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label for="pref_notes">Travel Notes / Diet / Safety Constraints</label>
+                        <textarea id="pref_notes" name="pref_notes" rows="3" placeholder="e.g. Vegetarian diet, walking restrictions, prefers direct routes..." class="form-textarea-style">{{ preferences.notes or '' }}</textarea>
+                    </div>
+                </div>
+
+                <hr class="divider mt-4">
+
+                <!-- Section 3: Optional Security Update -->
+                <div class="editor-section mt-4">
+                    <h3 class="section-title-small"><i class="fa-solid fa-key"></i> Update Password (Optional)</h3>
+                    <p class="text-muted">Leave blank if you do not wish to reset your current password.</p>
+                    <div class="form-group mt-3">
+                        <label for="new_password">New Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" id="new_password" name="new_password" placeholder="••••••••" autocomplete="new-password">
+                        </div>
+                        
+                        <!-- Strength Checklist -->
+                        <div class="password-checklist-box mt-2" id="pwdChecklist" style="display: none;">
+                            <p class="checklist-title">Password must satisfy:</p>
+                            <ul class="checklist-items">
+                                <li id="ruleLength" class="invalid"><i class="fa-solid fa-circle-xmark"></i> At least 6 characters</li>
+                                <li id="ruleUpper" class="invalid"><i class="fa-solid fa-circle-xmark"></i> At least 1 uppercase letter</li>
+                                <li id="ruleLower" class="invalid"><i class="fa-solid fa-circle-xmark"></i> At least 1 lowercase letter</li>
+                                <li id="ruleNumber" class="invalid"><i class="fa-solid fa-circle-xmark"></i> At least 1 digit</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block mt-4" id="saveProfileBtn">
+                    Save Changes <i class="fa-solid fa-floppy-disk ml-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const passwordInput = document.getElementById('new_password');
+    const checklist = document.getElementById('pwdChecklist');
+    const saveBtn = document.getElementById('saveProfileBtn');
+    
+    const ruleLength = document.getElementById('ruleLength');
+    const ruleUpper = document.getElementById('ruleUpper');
+    const ruleLower = document.getElementById('ruleLower');
+    const ruleNumber = document.getElementById('ruleNumber');
+    
+    passwordInput.addEventListener('input', function() {
+        const val = passwordInput.value;
+        if (!val) {
+            checklist.style.display = 'none';
+            saveBtn.disabled = false;
+            return;
+        }
+        
+        checklist.style.display = 'block';
+        
+        const isLengthOk = val.length >= 6;
+        toggleRule(ruleLength, isLengthOk);
+        
+        const isUpperOk = /[A-Z]/.test(val);
+        toggleRule(ruleUpper, isUpperOk);
+        
+        const isLowerOk = /[a-z]/.test(val);
+        toggleRule(ruleLower, isLowerOk);
+        
+        const isNumOk = /\d/.test(val);
+        toggleRule(ruleNumber, isNumOk);
+        
+        if (isLengthOk && isUpperOk && isLowerOk && isNumOk) {
+            saveBtn.disabled = false;
+        } else {
+            saveBtn.disabled = true;
+        }
+    });
+    
+    function toggleRule(element, isValid) {
+        if (isValid) {
+            element.classList.remove('invalid');
+            element.classList.add('valid');
+            element.querySelector('i').className = 'fa-solid fa-circle-check';
+        } else {
+            element.classList.remove('valid');
+            element.classList.add('invalid');
+            element.querySelector('i').className = 'fa-solid fa-circle-xmark';
+        }
+    }
+</script>
+{% endblock %}

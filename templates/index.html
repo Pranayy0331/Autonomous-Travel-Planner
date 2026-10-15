@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Autonomous Travel Planner - Your AI Travel Companion{% endblock %}
+
+{% block content %}
+<section class="hero-section text-center animate-fade-in">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1 class="hero-title animate-slide-up">
+            Plan Your Next Adventure <span class="gradient-text">Autonomously</span>
+        </h1>
+        <p class="hero-subtitle animate-slide-up" style="animation-delay: 0.1s;">
+            Generate complete day-by-day itineraries, interactive map visuals, packing lists, budget estimations, and chat live with our AI Travel Assistant.
+        </p>
+        <div class="hero-actions animate-slide-up" style="animation-delay: 0.2s;">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                Get Started Free <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline btn-lg">
+                Sign In
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Grid -->
+<section class="section features-section">
+    <div class="section-header text-center">
+        <span class="section-tag">Core Features</span>
+        <h2 class="section-title">Everything You Need for Seamless Journeys</h2>
+        <p class="section-subtitle">A unified platform integrating smart generation, mapping, organization, and AI assistance.</p>
+    </div>
+
+    <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card animate-scroll">
+            <div class="feature-icon">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <h3 class="feature-title">AI Itinerary Generator</h3>
+            <p class="feature-desc">Receive customized day-wise itineraries matching your travelers count, duration, preferred travel mode, and budget tier instantly.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card animate-scroll">
+            <div class="feature-icon">
+                <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <h3 class="feature-title">Interactive Maps</h3>
+            <p class="feature-desc">Visualize your destination's landmarks with Leaflet.js interactive maps built right into your planner. No API keys required.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card animate-scroll">
+            <div class="feature-icon">
+                <i class="fa-solid fa-cloud-sun"></i>
+            </div>
+            <h3 class="feature-title">Weather & Climate Checks</h3>
+            <p class="feature-desc">View average temperatures and expected conditions based on your specific departure month to ensure you prepare correctly.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card animate-scroll">
+            <div class="feature-icon">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+            <h3 class="feature-title">Packing Checklists</h3>
+            <p class="feature-desc">Check off a list tailored specifically to your travel type (Solo, Family, Business) and mode of transport (Flight, Train, Car).</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card animate-scroll">
+            <div class="feature-icon">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <h3 class="feature-title">AI Chat Assistant</h3>
+            <p class="feature-desc">Chat with an assistant that knows details about your trip, helps answer questions, and adjusts your plans dynamically.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card animate-scroll">
+            <div class="feature-icon">
+                <i class="fa-solid fa-history"></i>
+            </div>
+            <h3 class="feature-title">Trip History Vault</h3>
+            <p class="feature-desc">Save every generated plan securely. Review, re-plan, or edit your historical trip schedules at any time.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Banner -->
+<section class="cta-banner text-center animate-scroll">
+    <div class="cta-card glass-panel">
+        <h2 class="cta-title">Ready to Let AI Plan Your Next Travel?</h2>
+        <p class="cta-desc">Join thousands of travelers who plan, map, and organize their vacations with our autonomous assistant tool.</p>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg mt-4">Create Account Now</a>
+    </div>
+</section>
+{% endblock %}
